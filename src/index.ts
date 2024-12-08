@@ -4,9 +4,12 @@ import bcrypt, { hash } from "bcrypt";
 import {z} from "zod";
 import jwt from "jsonwebtoken";
 import dotenv from 'dotenv';
+//@ts-ignore
+import cors from "cors";
 
 dotenv.config()
 const app = express();
+app.use(cors());
 const prisma = new PrismaClient();
 
 app.use(express.json());
@@ -43,19 +46,28 @@ app.post("/api/v1/signup" , async(req , res) => {
             message: "User already exists."
         })
         return;
+    } else{
+        const newUser = await prisma.user.create({
+            data: {
+                username,
+                email,
+                password: hashedPassword as unknown as string
+            }
+        });
+    
+        const token = jwt.sign({
+            id: newUser.id
+            //@ts-ignore
+        }, process.env.JWT_USER_PASSWORD);
+    
+        res.status(200).json({
+            token,
+            message: "User signed up."
+
+        })
     }
 
-    await prisma.user.create({
-        data: {
-            username,
-            email,
-            password: hashedPassword as unknown as string
-        }
-    });
-
-    res.status(200).json({
-        message: "User signed up."
-    })
+    
 })
 
 app.post("/api/v1/signin" , async(req , res) => {
