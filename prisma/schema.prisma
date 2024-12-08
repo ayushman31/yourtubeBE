@@ -12,6 +12,15 @@ model User{
   username      String    @unique
   email         String    @unique
   password      String
+  liked         Liked[]
 }
 
+model Liked{
+  id          Int     @id   @default(autoincrement())
+  videoId     String
+  userId      Int
+  user        User    @relation(fields: [userId] , references: [id])
+
+  @@unique([videoId,userId])
+}
 
