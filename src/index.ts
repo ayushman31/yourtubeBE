@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import dotenv from 'dotenv';
 //@ts-ignore
 import cors from "cors";
+import { userMiddleware } from "./middleware";
 
 dotenv.config()
 const app = express();
@@ -109,6 +110,83 @@ app.post("/api/v1/signin" , async(req , res) => {
     }
 })
 
+app.post("/api/v1/like" , userMiddleware , async(req , res) => {
+
+    try{
+    const {videoId} = req.body;
+    //@ts-ignore
+    const userId = req.userId;
+
+    const likeFound = await prisma.liked.findUnique({
+        where: {
+            videoId_userId: {
+                videoId , userId
+            }
+        }
+    })
+
+    if(likeFound) {
+        await prisma.liked.delete({
+            where: {
+                videoId_userId: {
+                    videoId , userId
+                }
+            }
+        })
+        res.status(200).json({
+            message: "Unliked the video."
+        })
+    } else {
+        await prisma.liked.create({
+            data: {
+                videoId , userId
+            }
+        })
+        res.status(200).json({
+            message: "Video liked"
+        })
+    }
+} catch(e){
+    console.log(e);
+    
+    res.status(500).json({
+        message: "Server error.",
+    })
+}
+});
+
+app.get("/api/v1/like", userMiddleware, async (req, res) => {
+    try {
+      //@ts-ignore
+      const userId = req.userId;
+  
+      const videoList = await prisma.liked.findMany({
+        where: {
+          userId: userId
+        },
+        select: {
+          videoId: true
+        }
+      });
+  
+      if (videoList.length === 0) {
+        res.json({
+          message: "You have not liked any video.",
+          videoList: [] // Return an empty array
+        });
+      } else {
+        res.json({
+          videoList
+        });
+      }
+    } catch (e) {
+      console.log("Error in /api/v1/like:", e); // More descriptive error logging
+      res.status(500).json({
+        message: "Server error"
+      });
+    }
+  });
+  
 
 
 app.listen(3002);
